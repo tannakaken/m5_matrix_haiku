@@ -902,6 +902,12 @@ uint8_t draw_kana(String rest) {
     disp[2][0] = 1; disp[2][1] = 1; disp[2][2] = 1; disp[2][3] = 1; disp[2][4] = 1;
     disp[3][0] = 0; disp[3][1] = 1; disp[3][2] = 0; disp[3][3] = 0; disp[3][4] = 0;
     disp[4][0] = 0; disp[4][1] = 0; disp[4][2] = 1; disp[4][3] = 0; disp[4][4] = 0;
+  } else if (rest.startsWith("tt")) { // 点 待ち受けに使う
+    disp[0][0] = 0; disp[0][1] = 0; disp[0][2] = 0; disp[0][3] = 0; disp[0][4] = 0;
+    disp[1][0] = 0; disp[1][1] = 0; disp[1][2] = 0; disp[1][3] = 0; disp[1][4] = 0;
+    disp[2][0] = 0; disp[2][1] = 0; disp[2][2] = 1; disp[2][3] = 0; disp[2][4] = 0;
+    disp[3][0] = 0; disp[3][1] = 0; disp[3][2] = 0; disp[3][3] = 0; disp[3][4] = 0;
+    disp[4][0] = 0; disp[4][1] = 0; disp[4][2] = 0; disp[4][3] = 0; disp[4][4] = 0;
   }
   drawDisp();
   return progress;
@@ -1071,7 +1077,7 @@ void setup() {
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    draw_kana("xx");
+    draw_kana("tt");
   }
   num_of_haiku = getNumOfHaiku();
   Serial.println(num_of_haiku);
@@ -1131,6 +1137,7 @@ void onLongPressed() {
         current_i = 0;
         draw_kana(current_kana);
       } else {
+        draw_kana("tt");
         String haiku = getHaiku(current_haiku_num);
         drawHaiku(haiku);
         drawNumber(current_haiku_num);
@@ -1146,6 +1153,7 @@ void onLongPressed() {
           blinkCurrentKana();
           return;
         } else if (current_i == gyo_length - 2) { // ch 完了
+          draw_kana("tt");
           postHaiku(current_haiku);
           ++num_of_haiku;
           current_haiku_num = 0;
@@ -1181,6 +1189,7 @@ void onLongPressed() {
 void onDoublePressed() {
   switch (current_state) {
     case HaikuSelect:
+      draw_kana("tt");
       deleteHaiku(current_haiku_num);
       --num_of_haiku;
       current_haiku_num = 0;
