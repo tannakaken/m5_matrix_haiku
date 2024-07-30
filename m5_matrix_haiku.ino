@@ -663,7 +663,7 @@ uint8_t draw_kana(String rest) {
     disp[2][0] = 1; disp[2][1] = 1; disp[2][2] = 1; disp[2][3] = 1; disp[2][4] = 1;
     disp[3][0] = 0; disp[3][1] = 0; disp[3][2] = 0; disp[3][3] = 0; disp[3][4] = 1;
     disp[4][0] = 0; disp[4][1] = 1; disp[4][2] = 1; disp[4][3] = 1; disp[4][4] = 0;
-  } else if (rest.startsWith("nn")) {
+  } else if (rest.startsWith("mn")) { // n一文字だと、「ん」のあとに「あ」を打つと、曖昧性が出る。そこで「mn」で「ん」を表す。nnだとbackspaceのときに不便
     disp[0][0] = 1; disp[0][1] = 1; disp[0][2] = 0; disp[0][3] = 0; disp[0][4] = 0;
     disp[1][0] = 0; disp[1][1] = 0; disp[1][2] = 0; disp[1][3] = 0; disp[1][4] = 0;
     disp[2][0] = 0; disp[2][1] = 0; disp[2][2] = 0; disp[2][3] = 0; disp[2][4] = 1;
@@ -932,28 +932,28 @@ int num_of_haiku = 0;
 
 uint8_t current_i = 0;
 const uint8_t gyo_length = 22;
-String gyo[gyo_length] = {"a", "ka", "sa", "ta", "na", "ha", "ma", "ya", "ra", "wa", "nn", "ga", "za", "da", "ba", "pa", "xa", "xya", "xtu", "<-", "ch", "xx"};
+String gyo[gyo_length] = {"a", "ka", "sa", "ta", "na", "ha", "ma", "ya", "ra", "wa", "mn", "ga", "za", "da", "ba", "pa", "xa", "xya", "xtu", "<-", "ch", "xx"};
 String dans[gyo_length][6] = {
-  {"a", "i", "u", "e", "o", "<-"},
-  {"ka", "ki", "ku", "ke", "ko", "<-"},
-  {"sa", "si", "su", "se", "so", "<-"},
-  {"ta", "ti", "tu", "te", "to", "<-"},
-  {"na", "ni", "nu", "ne", "no", "<-"},
-  {"ha", "hi", "hu", "he", "ho", "<-"},
-  {"ma", "mi", "mu", "me", "mo", "<-"},
-  {"ya", "yu", "yo", "<-"},
-  {"ra", "ri", "ru", "re", "ro", "<-"},
-  {"wa", "wo", "<-"},
-  {"nn"},
-  {"ga", "gi", "gu", "ge", "go", "<-"},
-  {"za", "zi", "zu", "ze", "zo", "<-"},
-  {"da", "di", "du", "de", "do", "<-"},
-  {"ba", "bi", "bu", "be", "bo", "<-"},
-  {"pa", "pi", "pu", "pe", "po", "<-"},
-  {"xa", "xi", "xu", "xe", "xo", "<-"},
-  {"xya", "xyu", "xyo", "<-"},
+  {"a", "i", "u", "e", "o", "xx"},
+  {"ka", "ki", "ku", "ke", "ko", "xx"},
+  {"sa", "si", "su", "se", "so", "xx"},
+  {"ta", "ti", "tu", "te", "to", "xx"},
+  {"na", "ni", "nu", "ne", "no", "xx"},
+  {"ha", "hi", "hu", "he", "ho", "xx"},
+  {"ma", "mi", "mu", "me", "mo", "xx"},
+  {"ya", "yu", "yo", "xx"},
+  {"ra", "ri", "ru", "re", "ro", "xx"},
+  {"wa", "wo", "xx"},
+  {"mn"},
+  {"ga", "gi", "gu", "ge", "go", "xx"},
+  {"za", "zi", "zu", "ze", "zo", "xx"},
+  {"da", "di", "du", "de", "do", "xx"},
+  {"ba", "bi", "bu", "be", "bo", "xx"},
+  {"pa", "pi", "pu", "pe", "po", "xx"},
+  {"xa", "xi", "xu", "xe", "xo", "xx"},
+  {"xya", "xyu", "xyo", "xx"},
   {"xtu"},
-  {"<-"}, // 戻る
+  {"<-"}, // バックスペース
   {"ch"}, // 完了
   {"xx"}, // キャンセル
 };
@@ -1088,6 +1088,9 @@ void setup() {
 bool long_pressed = false;
 bool pressed_and_released = false;
 
+/**
+ * 状態が変わっても表示が変わらない場合、点滅させることで、正しく操作できているというフィードバックを与える。
+ */
 void blinkCurrentKana() {
   draw_kana(current_kana);
   delay(200);
@@ -1127,6 +1130,36 @@ void onSinglePressed() {
   }
 }
 
+bool currentHaikuIsValid() {
+  char last_c = current_haiku.charAt(current_haiku.length() - 1);
+  switch (last_c) {
+    case 'a':
+    case 'i':
+    case 'u':
+    case 'e':
+    case 'o':
+      return true;
+    case 'n':
+      if (current_haiku.charAt(current_haiku.length() - 1) == 'm') {
+        return true;
+      }
+     default:
+      return false;
+  }
+}
+
+void backspace() {
+  current_haiku = current_haiku = current_haiku.substring(0, current_haiku.length() - 1);
+  if (currentHaikuIsValid()) {
+    return;
+  }
+  current_haiku = current_haiku = current_haiku.substring(0, current_haiku.length() - 1);
+  if (currentHaikuIsValid()) {
+    return;
+  }
+  current_haiku = current_haiku = current_haiku.substring(0, current_haiku.length() - 1);
+}
+
 void onLongPressed() {
   switch (current_state) {
     case HaikuSelect:
@@ -1147,7 +1180,9 @@ void onLongPressed() {
       current_dan_length = dan_lengths[current_i];
       if (current_dan_length == 1) {
         if (current_i == gyo_length - 3) { // <- 戻る
-          current_haiku = current_haiku.substring(0, current_haiku.length() - 1);
+          if (current_haiku.length() > 0) {
+            backspace();
+          }
           current_i = 0;
           current_kana = gyo[current_i];
           blinkCurrentKana();
@@ -1177,11 +1212,17 @@ void onLongPressed() {
       }
       return;
     case DanSelect:
-      current_haiku += current_dan[current_j];
-      current_i = 0;
-      current_state = GyoSelect;
-      current_kana = gyo[current_i];
-      blinkCurrentKana();
+      if (current_j == current_dan_length - 1) { // xx キャンセル
+          current_state = GyoSelect;
+          current_kana = gyo[current_i];
+          blinkCurrentKana();
+      } else {
+        current_haiku += current_dan[current_j];
+        current_i = 0;
+        current_state = GyoSelect;
+        current_kana = gyo[current_i];
+        blinkCurrentKana();
+      }
       return;
   }
 }
